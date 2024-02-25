@@ -1,5 +1,4 @@
 -- Reaper API v7
-reaper.ClearConsole()
 
 -- Function to find track by name
 function findTrackByName(trackName)
@@ -36,9 +35,7 @@ end
 
 
 function applyTrackSwitching(trackHost, trackGuest, startTime, endTime)
-    -- reaper.ShowMessageBox("Finding stuff", "Info", 0)
-
-    -- If both tracks are found, show a message box with their index numbers
+    -- Check if both tracks are available
     if trackHost and trackGuest then
     else
         reaper.ShowMessageBox("Tracks Host and/or Guest not found, cannot continue.", "Error", 0)
@@ -47,18 +44,21 @@ function applyTrackSwitching(trackHost, trackGuest, startTime, endTime)
 
     -- reaper.ShowMessageBox("Tracks found", "Info", 0)
 
+    -- get track information
     local itemHost, itemHostIndex, itemHostTimeDelta = findItemAtTimePoint(trackHost, startTime, 0)
     local itemGuest, itemGuestIndex, itemGuestTimeDelta = findItemAtTimePoint(trackGuest, startTime, 0)
 
+    -- requirement: there must be an item at the time selection start point on both tracks
     if itemHost and itemHostIndex and itemHostTimeDelta
         and itemGuest and itemGuestIndex and itemGuestTimeDelta then
 
+        -- items found on tracks, let's find out the track order
         local itemTo, itemToIndex
         local itemFrom, itemFromIndex
         local trackTo
 
         if itemHostTimeDelta > itemGuestTimeDelta then
-            -- item on Host track is the longer one -> From track must be Host
+            -- item on Host track is the longer one -> direction must be Host->Guest
             itemTo = itemGuest
             itemToIndex = itemGuestIndex
             itemFrom = itemHost
@@ -67,7 +67,7 @@ function applyTrackSwitching(trackHost, trackGuest, startTime, endTime)
             trackTo = trackGuest
             -- reaper.ShowMessageBox("going from Host to Guest", "Info", 0) 
         else
-            -- item on track B is the longer one -> From track must be B
+            -- item on track Guest is the longer one -> direction must be Guest->Host
             itemTo = itemHost
             itemToIndex = itemHostIndex
             itemFrom = itemGuest
@@ -77,7 +77,7 @@ function applyTrackSwitching(trackHost, trackGuest, startTime, endTime)
             -- reaper.ShowMessageBox("going from Guest to Host", "Info", 0) 
         end
 
-        -- now the tracks are automatically mapped, the rest will adapt
+        -- now as the direction is known and the tracks are automatically mapped, let's start working
         if itemTo and itemFrom then
             -- reaper.ShowMessageBox("splitting To track at startTime", "Info", 0) 
             reaper.SplitMediaItem(itemTo, startTime)    
@@ -116,6 +116,8 @@ end
 
 
 function main()
+    reaper.ClearConsole()
+
     -- Find time selection
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
 
@@ -124,11 +126,11 @@ function main()
     local guestTrack = findTrackByName("Guest")
 
     applyTrackSwitching(hostTrack, guestTrack, startTime, endTime)
-    
-    -- reaper.ShowMessageBox("done", "Info", 0)
+
+    -- finalize by updating the screen
     reaper.UpdateArrange()
 end    
     
-
+-- Program starts from here
 main()
 
